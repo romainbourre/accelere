@@ -1,0 +1,39 @@
+name: Production Environment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+
+
+  deploy:
+      needs: build
+      environment: Production
+      
+      runs-on: ubuntu-latest
+
+      steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Deploy with CapRover
+        run: docker run -v "$(pwd)":"/race-manager" -w /race-manager caprover/cli-caprover caprover deploy --host ${{ secrets.CAPROVER_SERVER }} --appToken ${{ secrets.APP_TOKEN }} --branch main --appName ${{ secrets.APP_NAME }}
